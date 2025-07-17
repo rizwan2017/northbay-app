@@ -1,0 +1,42 @@
+name: CI/CD - Docker Build & Push to ACR
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - '*'
+
+env:
+  RESOURCE_GROUP: northbay-resouce-group
+  ACR_NAME: northbayacr
+  ACR_LOGIN_SERVER: northbayacr.azurecr.io
+  IMAGE_NAME: northbay-nginx
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Azure Container Registry
+        run: |
+          az acr login --name $ACR_NAME
+
+      - name: Build Docker image
+        run: |
+          docker build -t $ACR_LOGIN_SERVER/$IMAGE_NAME:latest .
+
+      - name: Push Docker image to ACR (only on push)
+        if: github.event_name == 'push'
+        run: |
+          docker push $ACR_LOGIN_SERVER/$IMAGE_NAME:latest
